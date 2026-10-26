@@ -1,0 +1,70 @@
+
+$ curl -s -i -X POST http://localhost:8000/exercicios -H 'Content-Type: application/json' -d '{"nome":"Supino reto","grupo_muscular_id":1}' | sed -n '1p;/^{/p'
+HTTP/1.1 401 Unauthorized
+{"erro":"Token ausente, inválido ou expirado. Faça login em /auth/login."}
+
+$ curl -s -X POST http://localhost:8000/auth/register -H 'Content-Type: application/json' -d '{"username":"luiz","password":"senha12345"}'
+{"id":1,"username":"luiz","criado_em":"2026-10-07T13:09:11.741631"}
+
+$ curl -s -X POST http://localhost:8000/auth/login -d 'username=luiz&password=senha12345'
+{"access_token":"<TOKEN JWT>","token_type":"bearer"}
+
+$ curl -s -i -X POST http://localhost:8000/grupos -H 'Authorization: Bearer <TOKEN>' -H 'Content-Type: application/json' -d '{"nome":"Peitoral"}' | sed -n '1p;/^{/p'
+HTTP/1.1 201 Created
+{"id":1,"nome":"Peitoral"}
+
+$ curl -s -i -X POST http://localhost:8000/exercicios -H 'Authorization: Bearer <TOKEN>' -H 'Content-Type: application/json' -d '{"nome":"Supino reto","descricao":"Empurrar a barra a partir do peito","equipamento":"Barra","grupo_muscular_id":1}' | sed -n '1p;/^{/p'
+HTTP/1.1 201 Created
+{"id":1,"nome":"Supino reto","descricao":"Empurrar a barra a partir do peito","equipamento":"Barra","nivel":"iniciante","series_padrao":3,"repeticoes_padrao":10,"grupo":{"id":1,"nome":"Peitoral"},"criado_em":"2026-10-07T13:09:12.103573"}
+
+$ curl -s -i -X POST http://localhost:8000/exercicios -H 'Authorization: Bearer <TOKEN>' -H 'Content-Type: application/json' -d '{"nome":"X","series_padrao":99,"grupo_muscular_id":1}' | sed -n '1p;/^{/p'
+HTTP/1.1 400 Bad Request
+{"erro":"Dados inválidos.","detalhes":[{"campo":"nome","mensagem":"String should have at least 2 characters"},{"campo":"series_padrao","mensagem":"Input should be less than or equal to 10"}]}
+
+$ curl -s -i -X POST http://localhost:8000/exercicios -H 'Authorization: Bearer <TOKEN>' -H 'Content-Type: application/json' -d '{"nome":"Supino reto","grupo_muscular_id":1}' | sed -n '1p;/^{/p'
+HTTP/1.1 409 Conflict
+{"erro":"Já existe um exercício com esse nome."}
+
+$ curl -s -i 'http://localhost:8000/exercicios?nivel=iniciante&busca=supino' | sed -n '1p;/^\[/p'
+HTTP/1.1 200 OK
+[{"id":1,"nome":"Supino reto","descricao":"Empurrar a barra a partir do peito","equipamento":"Barra","nivel":"iniciante","series_padrao":3,"repeticoes_padrao":10,"grupo":{"id":1,"nome":"Peitoral"},"criado_em":"2026-10-07T13:09:12.103573"}]
+
+$ curl -s -i http://localhost:8000/exercicios/1 | sed -n '1p;/^{/p'
+HTTP/1.1 200 OK
+{"id":1,"nome":"Supino reto","descricao":"Empurrar a barra a partir do peito","equipamento":"Barra","nivel":"iniciante","series_padrao":3,"repeticoes_padrao":10,"grupo":{"id":1,"nome":"Peitoral"},"criado_em":"2026-10-07T13:09:12.103573"}
+
+$ curl -s -i http://localhost:8000/exercicios/999 | sed -n '1p;/^{/p'
+HTTP/1.1 404 Not Found
+{"erro":"Exercício não encontrado."}
+
+$ curl -s -i -X PATCH http://localhost:8000/exercicios/1 -H 'Authorization: Bearer <TOKEN>' -H 'Content-Type: application/json' -d '{"nivel":"intermediario"}' | sed -n '1p;/^{/p'
+HTTP/1.1 200 OK
+{"id":1,"nome":"Supino reto","descricao":"Empurrar a barra a partir do peito","equipamento":"Barra","nivel":"intermediario","series_padrao":3,"repeticoes_padrao":10,"grupo":{"id":1,"nome":"Peitoral"},"criado_em":"2026-10-07T13:09:12.103573"}
+
+$ curl -s -i http://localhost:8000/auth/me | sed -n '1p;/^{/p'
+HTTP/1.1 401 Unauthorized
+{"erro":"Token ausente, inválido ou expirado. Faça login em /auth/login."}
+
+$ curl -s -i http://localhost:8000/auth/me -H 'Authorization: Bearer <TOKEN>' | sed -n '1p;/^{/p'
+HTTP/1.1 200 OK
+{"id":1,"username":"luiz","criado_em":"2026-10-07T13:09:11.741631"}
+
+$ curl -s -i -X OPTIONS http://localhost:8000/exercicios -H 'Origin: http://localhost:3000' -H 'Access-Control-Request-Method: POST' | grep -iE '^(HTTP|access-control-allow-(origin|methods|headers))'
+HTTP/1.1 200 OK
+access-control-allow-methods: GET, POST, PATCH, DELETE, OPTIONS
+access-control-allow-headers: Accept, Accept-Language, Authorization, Content-Language, Content-Type
+access-control-allow-origin: http://localhost:3000
+
+
+$ curl -s -i -X OPTIONS http://localhost:8000/exercicios -H 'Origin: http://site-malicioso.com' -H 'Access-Control-Request-Method: POST' | grep -iE '^(HTTP|access-control-allow-origin)|Disallowed'
+HTTP/1.1 400 Bad Request
+Disallowed CORS origin
+
+
+$ curl -s -i -X DELETE http://localhost:8000/exercicios/1 -H 'Authorization: Bearer <TOKEN>' | sed -n '1p'
+HTTP/1.1 204 No Content
+
+
+$ curl -s -i http://localhost:8000/exercicios/1 | sed -n '1p;/^{/p'
+HTTP/1.1 404 Not Found
+{"erro":"Exercício não encontrado."}
